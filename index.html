@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Javascript Program</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="body" style="background-color: #121212; color: white">
+    <div>
+        <canvas id="canvas" width="400" height="400" style="border:1px solid grey"></canvas>
+    </div>
+    <div style="width: 400px; ">
+        <input title="marign" type="range" min="1" max="100" value="50" class="slider" id="margin" onchange="updateMargin()">
+        <button onclick="runBestGraphRealTime()" class="startButton">START</button>
+        <button onclick="stop()" class="stopButton">STOP</button>
+    </div>
+    <div>
+        <p class="runstatus">Running: </p><p class="runstatus" id="runstatus">false</p>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
