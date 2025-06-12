@@ -78,35 +78,9 @@ const target_points = [
 ];
 
 const space = (function(){
-        let minX = function(){
-        let minX = target_points[0][0];
-        target_points.forEach(point =>{
-            if(point[0] < minX)minX = point[0];
-        })
-        return minX;
-    }()
-    let minY = function(){
-        let minY = target_points[0][1];
-        target_points.forEach(point =>{
-            if(point[1] < minY)minY = point[1];
-        })
-        return minY;
-    }()
-    let maxX = function(){
-        let maxX = target_points[0][0];
-        target_points.forEach(point =>{
-            if(point[0] > maxX)maxX = point[0];
-        })
-        return maxX;
-    }()
-    let maxY = function(){
-        let maxY = target_points[0][1];
-        target_points.forEach(point =>{
-            if(point[1] > maxY)maxY = point[1];
-        })
-        return maxY;
-    }()
     
+    let [minX, minY] = target_points[0];
+    let [maxX, maxY] = [minX, minY];
 
     for(const [x, y] of target_points){
         if(x > maxX) maxX = x;
