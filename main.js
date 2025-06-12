@@ -7,7 +7,7 @@ var pointSize = 0.1;
 var realTimeMode = false; // false = batch, true = real-time
 var tickCount = 0;
 var tickLength = 1/64;
-
+var optimizedBestGraph;
 
 function updateMargin(){
     let margin = parseInt(document.getElementById("margin").value)/100;
@@ -124,6 +124,86 @@ function generate_rand_graph(length, strength){
     return graph;
 }
 
+//woker
+const workerCode = `
+self.onmessage = function(e) {
+    
+    const { graphs, tickLimit, tickLength, target_points } = e.data;
+
+    function distance([x1, y1], [x2, y2]) {
+        let dx = x2 - x1, dy = y2 - y1;
+        return dx * dx + dy * dy;
+    }
+
+    function simulateGraph(graph) {
+        let tickCount = 0;
+        let ball = {
+            position: [0.0, 0.0],
+            velocity: [0.0, 0.0],
+            acceleration: [0.0, 0.0],
+            mass: 1
+        };
+        let history = [];
+
+        while (tickCount <= tickLimit) {
+            for (let d = 0; d < 2; d++) {
+                const force = graph[d][tickCount];
+                ball.acceleration[d] = force / ball.mass;
+                ball.velocity[d] += ball.acceleration[d] * tickLength;
+                ball.position[d] += ball.velocity[d] * tickLength;
+            }
+            history.push([...ball.position]);
+            tickCount++;
+        }
+
+        let totalDist = 0;
+        for (let target of target_points) {
+            const distances = history.map(pos => distance(pos, target));
+            totalDist += Math.min(...distances);
+        }
+
+        return { totalDist, history };
+    }
+
+    const results = {
+        totalDistances: [],
+        positionHistories: []
+    };
+
+    for (const graph of graphs) {
+        const result = simulateGraph(graph);
+        results.totalDistances.push(result.totalDist);
+        results.positionHistories.push(result.history);
+    }
+
+    self.postMessage(results);
+};
+`;
+
+const workerPool = [];
+const workerIdle = [];
+let workerTaskResolvers = [];
+
+function setupWorkerPool(num) {
+    if (workerPool.length > 0) return; // already initialized
+
+    for (let i = 0; i < num; i++) {
+        const worker = new Worker(workerURL);
+        workerPool.push(worker);
+        workerIdle.push(true);
+
+        worker.onmessage = function (e) {
+            const resolver = workerTaskResolvers[i];
+            if (resolver) resolver(e.data);
+            workerTaskResolvers[i] = null;
+            workerIdle[i] = true;
+        };
+    }
+}
+
+
+const workerBlob = new Blob([workerCode], { type: "application/javascript" });
+const workerURL = URL.createObjectURL(workerBlob);
 
 
 // --------------- TEST FORCE GS ----------------------
@@ -186,7 +266,11 @@ var bestGraph = indexOfSmallest(totalMinDistanceForEachGraph);
 //console.log(forceGraphs[bestGraph])
 //console.log(bestGraph)
 
-let optimizedBestGraph = optimizeGraph(forceGraphs[bestGraph], 1000, 1000, 3);
+//var optimizedBestGraph;
+
+(async () => {
+    optimizedBestGraph = await optimizeGraph(forceGraphs[bestGraph], 1000, 1000, 3);
+})();
 
 
 // --------------- NEW GRAPHS! -------------------------
@@ -207,7 +291,7 @@ function mutateGraph(graph, strength = 0.2) {
 }
 
 
-function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mutationStrength = 0.2) {
+async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mutationStrength = 0.2) {
     let currentBest = initialGraph;
 
     let lastScore = 0;
@@ -220,30 +304,28 @@ function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mut
 
         if(stuck) strength *= currentScore;
 
-        // Generate mutated variations
         for (let i = 0; i < mutationsPerGen; i++) {
             candidates.push(mutateGraph(currentBest, strength));
         }
 
-        // Simulate all candidates
-        let results = simulateGraphSet(candidates);
+        let results = await simulateGraphSet(candidates);
 
-        // Find the best one
         const bestIndex = indexOfSmallest(results.totalDistances);
         currentBest = candidates[bestIndex];
 
-        console.log((stuck? '\x1b[31m':"")+`Generation ${gen + 1}: Best Score = ${results.totalDistances[bestIndex]}`);
+        console.log((stuck ? '\x1b[31m' : "") + `Generation ${gen + 1}: Best Score = ${results.totalDistances[bestIndex]}`);
         currentScore = results.totalDistances[bestIndex];
+
         if(currentScore == lastScore && !stuck) stuckCount++;
         if(currentScore != lastScore) stuckCount = 0;
         lastScore = currentScore;
         if(stuckCount >= 5 && !stuck){
             stuck = true;
-            console.log('\x1b[31m'+"stuck mode on")    
+            //console.log('\x1b[31m'+"stuck mode on");
         }
         if(stuckCount < 5 && stuck){
             stuck = false;
-            console.log('\x1b[32m'+"stuck mode off")
+            //console.log('\x1b[32m'+"stuck mode off");
         }
     }
 
@@ -252,40 +334,52 @@ function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mut
 
 var optimizedGraphSet = [];
 
-function simulateGraphSet(graphSet) {
-    const results = {
+async function simulateGraphSet(graphSet) {
+    const numWorkers = 5;
+    setupWorkerPool(numWorkers);
+
+    const chunkSize = Math.ceil(graphSet.length / numWorkers);
+    const promises = [];
+
+    for (let i = 0; i < numWorkers; i++) {
+        const chunk = graphSet.slice(i * chunkSize, (i + 1) * chunkSize);
+        if (chunk.length === 0) continue;
+
+        const worker = workerPool[i];
+        workerIdle[i] = false;
+
+        const promise = new Promise((resolve) => {
+            workerTaskResolvers[i] = resolve;
+            worker.postMessage({
+                graphs: chunk,
+                tickLimit,
+                tickLength,
+                target_points
+            });
+        });
+
+        promises.push(promise);
+    }
+
+    const results = await Promise.all(promises);
+
+    // Merge results
+    const combined = {
         totalDistances: [],
         positionHistories: []
     };
 
-    for (let i = 0; i < graphSet.length; i++) {
-        tickCount = 0;
-        ball.position = [0.0, 0.0];
-        ball.velocity = [0.0, 0.0];
-        ball.acceleration = [0.0, 0.0];
-        cPositionHistory = [];
-
-        while (tickCount <= tickLimit) {
-            simulation_tick_graph(graphSet[i], false); // simulate with this graph
-        }
-
-        results.positionHistories.push(cPositionHistory);
-
-        // Calculate total distance to targets
-        let totalDist = 0;
-        for (let target of target_points) {
-            const distances = cPositionHistory.map(pos => distance(pos, target));
-            //const avgDist = distances.reduce((sum, d) => sum + d, 0) / distances.length;
-            const minDist = Math.min(...distances);
-            //totalDist += avgDist + minDist; // mixed metric
-            totalDist += minDist;
-        }
-
-        results.totalDistances.push(totalDist);
+    for (const res of results) {
+        combined.totalDistances.push(...res.totalDistances);
+        combined.positionHistories.push(...res.positionHistories);
     }
+
     optimizedGraphSet = graphSet;
-    return results;
+    return combined;
 }
+
+
+
 
 
 
@@ -367,6 +461,7 @@ function updateCanvas(){
 
 
 function start(){
+    destroyWorkerPool();
     started = true;
     ball.velocity = [0.0, 0.0];
     var loop = window.setInterval(function(){
@@ -383,4 +478,12 @@ function stop(){
     document.getElementById("runstatus").innerText = "false";
     document.getElementsByClassName("runstatus")[0].style.color = "#DC0000";
     document.getElementsByClassName("runstatus")[1].style.color = "#DC0000";
+}
+function destroyWorkerPool() {
+    for (const worker of workerPool) {
+        worker.terminate();
+    }
+    workerPool.length = 0;
+    workerIdle.length = 0;
+    workerTaskResolvers = [];
 }
