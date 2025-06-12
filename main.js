@@ -35,7 +35,7 @@ function drawPoint([x, y], color, size){
 
 function drawTargetPoints(){
     for(let i = 0; i<target_points.length; i++){
-        [x, y] = target_points[i];
+        let [x, y] = target_points[i];
         drawPoint([x, y], "white", pointSize);
         
     }
@@ -43,7 +43,8 @@ function drawTargetPoints(){
 
 function distance([x1, y1], [x2, y2]) {
     
-    return Math.pow(x2-x1,2)+Math.pow(y2-y1,2);
+    let dx = x2-x1, dy = y2-y1;
+    return dx*dx + dy*dy;
     //return Math.hypot(x2-x1, y2-y1);
 }
 
@@ -150,7 +151,7 @@ for(let i = 0; i < forceGraphs.length; i++){
         simulation_tick(i);
     }
     aPositionHistory.push(cPositionHistory);
-    console.log("ITERATION ",(i+1).toString()," COMPELITE");
+    //console.log("ITERATION ",(i+1).toString()," COMPELITE");
 }
 //console.log(aPositionHistory);
 var minDistanceForEachTargetOfEachGraph = [];
@@ -194,13 +195,17 @@ function mutateGraph(graph, strength = 0.2) {
     let mutated = [[], []];
     for (let d = 0; d < 2; d++) {
         for (let t = 0; t < graph[d].length; t++) {
-            let original = graph[d][t];
-            let variation = (Math.random() - 0.5) * strength; // small delta
-            mutated[d].push(original + variation);
+            if (Math.random() < 0.1) { // mutate only 10% of ticks
+                let variation = (Math.random() - 0.5) * strength;
+                mutated[d][t] = graph[d][t] + variation;
+            } else {
+                mutated[d][t] = graph[d][t];
+            }
         }
     }
     return mutated;
 }
+
 
 function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mutationStrength = 0.2) {
     let currentBest = initialGraph;
