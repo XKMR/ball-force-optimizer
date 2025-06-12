@@ -66,13 +66,13 @@ while(i < pcount){
     rand_target_points.push([i, (Math.sin(i))]);
     i++;
 }
-const target_points = rand_target_points;
-/*const target_points = [
+//const target_points = rand_target_points;
+const target_points = [
     [0,0],
-    [1,1],
-    [2,2],
-    [3,3]
-];*/
+    [2,4],
+    [4,0],
+    [5,5]
+];
 
 const space = (function(){
         let minX = function(){
