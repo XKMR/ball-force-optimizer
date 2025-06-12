@@ -37,11 +37,14 @@ function drawTargetPoints(){
     for(let i = 0; i<target_points.length; i++){
         [x, y] = target_points[i];
         drawPoint([x, y], "white", pointSize);
+        
     }
 }
 
 function distance([x1, y1], [x2, y2]) {
-    return Math.hypot(x2 - x1, y2 - y1);
+    
+    return Math.pow(x2-x1,2)+Math.pow(y2-y1,2);
+    //return Math.hypot(x2-x1, y2-y1);
 }
 
 function indexOfSmallest(arr) {
@@ -60,10 +63,10 @@ function indexOfSmallest(arr) {
 //--------- GENERATE POINTS ------------
 
 var rand_target_points = [];
-let pcount = 10
+let pcount = 100
 let i = 0;
 while(i < pcount){
-    rand_target_points.push([i, (Math.sin(i))]);
+    rand_target_points.push([Math.round(Math.random()*100), Math.round(Math.random()*100)]);
     i++;
 }
 //const target_points = rand_target_points;
@@ -177,30 +180,30 @@ for(let i = 0; i < forceGraphs.length; i++){
 }
 //console.log(aPositionHistory);
 var minDistanceForEachTargetOfEachGraph = [];
-aPositionHistory.forEach(graph => {
+for(let graph of aPositionHistory){
     let minDistanceForEachTargetOfThisGraph = [];
     for(let point of target_points){
         let minDistanceToPoint;
         let currentDistanceToPoint;
-        graph.forEach(ballPosition =>{
+        for(let ballPosition of graph){
             
             currentDistanceToPoint = distance(ballPosition, point);
             if(minDistanceToPoint === undefined || minDistanceToPoint > currentDistanceToPoint)
                 minDistanceToPoint = currentDistanceToPoint;
-        })
+        }
         minDistanceForEachTargetOfThisGraph.push(minDistanceToPoint);
     }
     minDistanceForEachTargetOfEachGraph.push(minDistanceForEachTargetOfThisGraph);
-});
+}
 var totalMinDistanceForEachGraph = function(){
     let out = [];
-    minDistanceForEachTargetOfEachGraph.forEach(graph =>{
+    for(let graph of minDistanceForEachTargetOfEachGraph){
         let sum = 0;
-        graph.forEach(d => {
+        for(let d of graph){
             sum += d;
-        });
+        }
         out.push(sum);
-    });
+    }
     return out;
 }();
 //console.log(totalMinDistanceForEachGraph);
