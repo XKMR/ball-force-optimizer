@@ -1,12 +1,45 @@
+//INPUTS
+const inTIME = 1; //seconds
+const inGEN = 1000; //number of generations
+const inMUT = 100; //mutations per generation
+const inSTR = 4; //strength of mutations
+const inMUTC = 0.1; //mutation ratio of graphs
+const inWRK = 10; //number of workers
+const inPTZ = 0.1; //size of points
+const inUPF = false; //Use Point Formula
+const inPTF = "[i, Math.round(Math.random()*10)]";//point formula
+const inPTS = [[0,0], [2,4], [4,0], [5,5]];//points to use if not use formula
+const inCSZ = 400; //canvas size
+
+//technical
+const inTL = 1/64; //tick length
+
+function generat_target_points(UsePointFormula, PointFormula, InputPoints){
+    let target_points = [];
+    if(UsePointFormula){
+        
+        let pcount = 3
+        let i = 0;
+        while(i < pcount){
+            target_points.push(eval(PointFormula));
+            i++;
+        }
+    }else{
+        target_points = InputPoints
+    }
+    return target_points;
+}
+const target_points = generat_target_points(inUPF, inPTF, inPTS);
+
 //Canvas setup
 const canvas = document.getElementById("canvas");
-canvas.height = canvas.width = 400;
+canvas.height = canvas.width = inCSZ;
 const ctx = canvas.getContext("2d");
-var pointSize = 0.1;
+var pointSize = inPTZ;
 
 var realTimeMode = false; // false = batch, true = real-time
 var tickCount = 0;
-var tickLength = 1/64;
+var tickLength = inTL;
 var optimizedBestGraph;
 
 function updateMargin(){
@@ -15,7 +48,7 @@ function updateMargin(){
     let y_transform = canvas.height/(space[1][1]-space[0][1])*margin;
     let transform = Math.min(x_transform, y_transform);
     let x_offset = (canvas.width - (canvas.width*margin))/2;
-    let y_offset = (canvas.height - (canvas.width*margin))/2;
+    let y_offset = (canvas.height - (canvas.height*margin))/2;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
@@ -61,23 +94,6 @@ function indexOfSmallest(arr) {
   return smallestIndex;
 }
 
-//--------- GENERATE POINTS ------------
-
-var rand_target_points = [];
-let pcount = 100
-let i = 0;
-while(i < pcount){
-    rand_target_points.push([Math.round(Math.random()*100), Math.round(Math.random()*100)]);
-    i++;
-}
-//const target_points = rand_target_points;
-const target_points = [
-    [0,0],
-    [2,4],
-    [4,0],
-    [5,5]
-];
-
 const space = (function(){
     
     let [minX, minY] = target_points[0];
@@ -110,7 +126,7 @@ var ball = {
 }
 
 // --------------- GENERATE FORCE ----------------------
-const tickLimit = Math.round((1)/tickLength); //number is in seconds
+const tickLimit = Math.round((inTIME)/tickLength); //number is in seconds
 
 function generate_rand_graph(length, strength){
     //let value = 0;
@@ -161,7 +177,6 @@ self.onmessage = function(e) {
             const distances = history.map(pos => distance(pos, target));
             totalDist += Math.min(...distances);
         }
-
         return { totalDist, history };
     }
 
@@ -269,7 +284,7 @@ var bestGraph = indexOfSmallest(totalMinDistanceForEachGraph);
 //var optimizedBestGraph;
 
 (async () => {
-    optimizedBestGraph = await optimizeGraph(forceGraphs[bestGraph], 1000, 1000, 3);
+    optimizedBestGraph = await optimizeGraph(forceGraphs[bestGraph], inGEN, inMUT, inSTR);
 })();
 
 
@@ -279,7 +294,7 @@ function mutateGraph(graph, strength = 0.2) {
     let mutated = [[], []];
     for (let d = 0; d < 2; d++) {
         for (let t = 0; t < graph[d].length; t++) {
-            if (Math.random() < 0.1) { // mutate only 10% of ticks
+            if (Math.random() < inMUTC) { // mutate only 10% of ticks
                 let variation = (Math.random() - 0.5) * strength;
                 mutated[d][t] = graph[d][t] + variation;
             } else {
@@ -327,15 +342,15 @@ async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 1
             stuck = false;
             //console.log('\x1b[32m'+"stuck mode off");
         }
-    }
 
+    }
     return currentBest;
 }
 
 var optimizedGraphSet = [];
 
 async function simulateGraphSet(graphSet) {
-    const numWorkers = 5;
+    const numWorkers = inWRK;
     setupWorkerPool(numWorkers);
 
     const chunkSize = Math.ceil(graphSet.length / numWorkers);
@@ -386,6 +401,7 @@ async function simulateGraphSet(graphSet) {
 // --------------- DISPLAY BEST ------------------------
 
 function runBestGraphRealTime(){
+    //destroyWorkerPool();
     realTimeMode = true;
     tickCount = 0;
 
@@ -461,7 +477,7 @@ function updateCanvas(){
 
 
 function start(){
-    destroyWorkerPool();
+    
     started = true;
     ball.velocity = [0.0, 0.0];
     var loop = window.setInterval(function(){
