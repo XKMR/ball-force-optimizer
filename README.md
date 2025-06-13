@@ -20,15 +20,15 @@ After simulating a ball’s trajectory using a specific force graph, the fitness
 
 ## 🧬 Genetic Optimization
 ### Key Parameters:
-`inGEN`: number of generations
-
-`inMUT`: mutations per generation
-
-`inSTR`: mutation strength
-
-`inMUTC`: mutation chance per tick
-
-`inWRK`: number of Web Workers for parallelization
+> `inGEN`: number of generations
+>
+> `inMUT`: mutations per generation
+>
+> `inSTR`: mutation strength
+>
+> `inMUTC`: mutation chance per tick
+>
+> `inWRK`: number of Web Workers for parallelization
 
 ### Process:
 Start with an initial random force graph (forceGraphs).
