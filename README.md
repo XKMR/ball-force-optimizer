@@ -18,3 +18,14 @@ These serve as checkpoints or waypoints the ball should ideally pass near.
 ### 3. Fitness Function
 After simulating a ball’s trajectory using a specific force graph, the fitness is calculated by summing the minimum squared Euclidean distances between each target point and the closest point on the ball's path.
 
+## 🧬 Genetic Optimization
+### Key Parameters:
+`inGEN`: number of generations
+
+`inMUT`: mutations per generation
+
+`inSTR`: mutation strength
+
+`inMUTC`: mutation chance per tick
+
+`inWRK`: number of Web Workers for parallelization
