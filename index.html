@@ -1,24 +1,68 @@
 <!DOCTYPE html>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Javascript Program</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ball Simulation</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body id="body" style="background-color: #121212; color: white">
-    <div>
-        <canvas id="canvas" width="400" height="400" style="border:1px solid grey"></canvas>
+<body>
+
+  <header>
+    <h1>Ball Path Optimizer</h1>
+    <p>Evolution-based force graph optimizer</p>
+  </header>
+
+  <canvas id="canvas" width="400" height="400"></canvas>
+
+  <div class="controls">
+
+    <div class="slider-container">
+      <label for="margin">View Margin:</label>
+      <input type="range" id="margin" min="1" max="100" value="50" onchange="updateMargin()">
     </div>
-    <div style="width: 400px; ">
-        <input title="marign" type="range" min="1" max="100" value="50" class="slider" id="margin" onchange="updateMargin()">
-        <button onclick="runBestGraphRealTime()" class="startButton">START</button>
-        <button onclick="stop()" class="stopButton">STOP</button>
+
+    <div class="buttons">
+      <button onclick="runBestGraphRealTime()">▶ Replay Best</button>
+      <button onclick="restart(0)">→ Optimize</button>
+      <button onclick="restart(1)">⟳ Restart</button>
     </div>
-    <div>
-        <p class="runstatus">Running: </p><p class="runstatus" id="runstatus">false</p>
-        <p class="runstatus">PLEASE WAIT FOR THE PAGE TO LOAD, THEN OPEN DEV TOOLS CONSOLE FOR INFO</p>
+
+    <div class="status-container">
+      <span>Status:</span>
+      <span class="status" id="runstatus">Stopped</span>
     </div>
-    <script src="main.js"></script>
+
+    <div class="info">
+      <small>Open the dev console for log.</small>
+    </div>
+
+  </div>
+  <div class="config">
+    <div class="container">
+      <span>Generation Limit:</span>
+      <span id="gen">9900</span>
+    </div>
+    <div class="container">
+      <span>Time Limit (s):</span>
+      <span id="time">1</span>
+    </div>
+    <div class="container">
+      <span>Mutations Per Gen:</span>
+      <span id="mutPerGen">100</span>
+    </div>
+    <div class="container">
+      <span>Mutation Strength:</span>
+      <span id="mutStrength">4</span>
+    </div>
+    <div class="container">
+      <span>Final Score:</span>
+      <span id="finalScore">N/A</span>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+
+
 </body>
 </html>
