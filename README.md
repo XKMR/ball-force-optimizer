@@ -34,12 +34,8 @@ After simulating a ball’s trajectory using a specific force graph, the fitness
 Start with an initial random force graph (forceGraphs).
 
 Run optimizeGraph, which:
-
 > Spawns inMUT mutations of the current best graph.
-
 > Simulates each using a worker pool (parallelized via Web Workers).
-
 > Selects the best graph based on fitness.
-
 > Mutates it again, iterating over inGEN generations.
 
