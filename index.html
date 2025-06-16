@@ -23,43 +23,49 @@
     </div>
 
     <div class="buttons">
-      <button onclick="runBestGraphRealTime()">▶ Replay Best</button>
-      <button onclick="restart(0)">→ Optimize</button>
-      <button onclick="restart(1)">⟳ Restart</button>
+      <button onclick="runBestGraphRealTime()" id="replayButton">▶ Replay Best</button>
+      <button onclick="restart(0)" id="continueButton">→ Optimize</button>
+      <button onclick="restart(1)" id="restartButton">⟳ Restart</button>
+      <button onclick="toggleSettings()" id="settingButton">⚙ Settings</button>
     </div>
 
     <div class="status-container">
       <span>Status:</span>
       <span class="status" id="runstatus">Stopped</span>
     </div>
-
+    <div class="container">
+      <span>Final Score:</span>
+      <span id="finalScore">N/A</span>
+    </div>
     <div class="info">
       <small>Open the dev console for log.</small>
     </div>
 
   </div>
-  <div class="config">
-    <div class="container">
-      <span>Generation Limit:</span>
-      <span id="gen">9900</span>
-    </div>
-    <div class="container">
-      <span>Time Limit (s):</span>
-      <span id="time">1</span>
-    </div>
-    <div class="container">
-      <span>Mutations Per Gen:</span>
-      <span id="mutPerGen">100</span>
-    </div>
-    <div class="container">
-      <span>Mutation Strength:</span>
-      <span id="mutStrength">4</span>
-    </div>
-    <div class="container">
-      <span>Final Score:</span>
-      <span id="finalScore">N/A</span>
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal-content">
+    <h2>Settings</h2>
+    <div class="input-row"><label>Time Limit (s):</label><input type="number" id="inTIME" value="1" min="0.1" step="0.1"/></div>
+    <div class="input-row"><label>Generation Limit:</label><input type="number" id="inGEN" value="1000"/></div>
+    <div class="input-row"><label>Mutations/Gen:</label><input type="number" id="inMUT" value="100"/></div>
+    <div class="input-row"><label>Mutation Strength:</label><input type="number" id="inSTR" value="4"/></div>
+    <div class="input-row"><label>Mutation Ratio:</label><input type="number" id="inMUTC" step="0.01" value="0.1"/></div>
+    <div class="input-row"><label>Workers:</label><input type="number" id="inWRK" value="10"/></div>
+    <div class="input-row"><label>Point Size:</label><input type="number" id="inPTZ" step="0.01" value="0.1"/></div>
+    <div class="input-row"><label>Use Point Formula:</label><input type="checkbox" id="usePointFormula"/></div>
+    <div class="input-row"><label>Point Formula:</label><input type="text" id="pointFormula" value="[i, Math.round(Math.random()*10)]"/></div>
+    <div class="input-row"><label>Manual Points:</label><textarea id="manualPoints">[[0,0],[2,4],[4,0],[5,5]]</textarea></div>
+    <div class="input-row"><label>Canvas Size:</label><input type="number" id="inCSZ" value="400"/></div>
+    <div class="input-row"><label>Ball Mass:</label><input type="number" id="inBMS" value="1"/></div>
+    <div class="input-row"><label>Ball Start Pos:</label><input type="text" id="inBSP" value="[0.0, 0.0]"/></div>
+
+    <div class="modal-buttons">
+      <button onclick="applySettings()">Apply</button>
+      <button onclick="toggleSettings()">Close</button>
     </div>
   </div>
+</div>
+
 
   <script src="main.js"></script>
 
