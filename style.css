@@ -1,4 +1,5 @@
     body {
+      z-index: 0;
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', sans-serif;
@@ -67,6 +68,13 @@
     button:hover {
       background-color: #555;
     }
+    button:disabled {
+      background-color: #1a1a1a;
+      color: #555;
+    }
+    button.playing {
+      background-color: #555;
+    }
 
     .status {
       font-weight: bold;
@@ -80,3 +88,115 @@
     .status.stopped {
       color: #dc0000;
     }
+
+    .settings {
+  margin-top: 1em;
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+}
+
+.settings-toggle {
+  background-color: #444;
+  margin-bottom: 0.5em;
+}
+
+.settings-panel {
+  z-index: 1;
+  background-color: #1e1e1e;
+  padding: 1em;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.hidden {
+  display: none;
+}
+
+.input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+}
+
+.input-row input, .input-row textarea {
+  flex: 1;
+  padding: 4px;
+  font-size: 0.9em;
+  background-color: #222;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 5px;
+}
+
+/* Modal background overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Modal content box */
+.modal-content {
+  background-color: #1e1e1e;
+  padding: 2em;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  color: white;
+}
+
+.modal-content h2 {
+  margin: 0;
+  text-align: center;
+}
+
+/* Input rows inside modal */
+.input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+}
+
+.input-row input, .input-row textarea {
+  flex: 1;
+  padding: 6px;
+  background-color: #222;
+  border: 1px solid #555;
+  border-radius: 5px;
+  color: white;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+.hidden {
+  display: none;
+}
+
+.settings-toggle {
+  margin-top: 1em;
+  background-color: #333;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
