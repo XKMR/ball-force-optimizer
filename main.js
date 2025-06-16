@@ -1,20 +1,22 @@
 //INPUTS
-const inTIME = 1; //seconds
-const inGEN = 1000; //number of generations
-const inMUT = 100; //mutations per generation
-const inSTR = 4; //strength of mutations
-const inMUTC = 0.1; //mutation ratio of graphs
-const inWRK = 10; //number of workers
-const inPTZ = 0.1; //size of points
-const usePointFormula = false; //Use Point Formula
-const pointFormula = "[i, Math.round(Math.random()*10)]";//point formula
-const manualPoints = [[0,0], [2,4], [4,0], [5,5]];//points to use if not use formula
-const inCSZ = 400; //canvas size
-const inBMS = 1; //ball mass
-const inBSP = [0.0, 0.0]; //ball starting position
+var inTIME = 1; //seconds
+var inGEN = 1000; //number of generations
+var inMUT = 100; //mutations per generation
+var inSTR = 4; //strength of mutations
+var inMUTC = 0.1; //mutation ratio of graphs
+var inWRK = 10; //number of workers
+var inPTZ = 0.1; //size of points
+var usePointFormula = false; //Use Point Formula
+var pointFormula = "[i, Math.round(Math.random()*10)]";//point formula
+var manualPoints = [[0,0], [2,4], [4,0], [5,5]];//points to use if not use formula
+var inCSZ = 400; //canvas size
+var inBMS = 1; //ball mass
+var inBSP = [0.0, 0.0]; //ball starting position
 
 //technical
-const inTL = 1/64; //tick length
+var inTL = 1/64; //tick length
+
+var firstRun = true;
 
 function generat_target_points(UsePointFormula, PointFormula, InputPoints){
     let target_points = [];
@@ -31,7 +33,7 @@ function generat_target_points(UsePointFormula, PointFormula, InputPoints){
     }
     return target_points;
 }
-const target_points = generat_target_points(usePointFormula, pointFormula, manualPoints);
+var target_points = generat_target_points(usePointFormula, pointFormula, manualPoints);
 
 //Canvas setup
 const canvas = document.getElementById("canvas");
@@ -96,7 +98,7 @@ function indexOfSmallest(arr) {
   return smallestIndex;
 }
 
-const space = (function(){
+var space = (function(){
     
     let [minX, minY] = target_points[0];
     let [maxX, maxY] = [minX, minY];
@@ -117,7 +119,7 @@ updateMargin();
 drawTargetPoints();
 var started = true;
 updateStatusUI(true);
-
+document.getElementById("replayButton").disabled = true;
 
 var ball = {
     position: [...inBSP],
@@ -127,7 +129,7 @@ var ball = {
 }
 
 // --------------- GENERATE FORCE ----------------------
-const tickLimit = Math.round((inTIME)/tickLength); //number is in seconds
+var tickLimit = Math.round((inTIME)/tickLength); //number is in seconds
 
 function generateRandomGraph(length, strength){
     //let value = 0;
@@ -146,7 +148,7 @@ function generateRandomGraph(length, strength){
 const workerCode = /*js*/`
 self.onmessage = function(e) {
     
-    const { graphs, tickLimit, tickLength, target_points, starting_position } = e.data;
+    var { graphs, tickLimit, tickLength, target_points, starting_position } = e.data;
 
     function distance([x1, y1], [x2, y2]) {
         let dx = x2 - x1, dy = y2 - y1;
@@ -289,6 +291,7 @@ function restart(mode){
 
 async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 10, mutationStrength = 0.2, restart = true) {
     updateStatusUI(true);
+    firstRun = false;
     let currentBest = initialGraph;
     let lastScore = 0;
     let currentScore;
@@ -328,6 +331,8 @@ async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 1
     }
     document.getElementById("finalScore").innerHTML = currentScore;
     updateStatusUI(false);
+    document.getElementById("continueButton").disabled = false;
+    document.getElementById("replayButton").disabled = false;
     return currentBest;
 }
 
@@ -388,6 +393,7 @@ async function simulateGraphSet(graphSet) {
 
 function runBestGraphRealTime(){
     //destroyWorkerPool();
+
     realTimeMode = true;
     tickCount = 0;
 
@@ -396,17 +402,21 @@ function runBestGraphRealTime(){
     ball.velocity = [0.0, 0.0];
     ball.acceleration = [0.0, 0.0];
     cPositionHistory = [];
-
+    document.getElementById("replayButton").innerText = "❚❚ Replay Best";
+    document.getElementById("replayButton").classList.add("playing");
     startRealTimeLoop();
+
 }
 
 function startRealTimeLoop(){
     started = true;
-
+    
     const loop = setInterval(() => {
         if (!started || tickCount > tickLimit) {
             clearInterval(loop);
             realTimeMode = false;
+            document.getElementById("replayButton").innerHTML = "▶ Replay Best";
+            document.getElementById("replayButton").classList.remove("playing");
             return;
         }
         simulation_tick_graph(bestOptimizedGraph, draw = true) // draw = true
@@ -472,18 +482,16 @@ function destroyWorkerPool() {
     workerTaskResolvers = [];
 }
 
-    updateElement("gen", inGEN);
-    updateElement("time", inTIME);
-    updateElement("mutPerGen", inMUT);
-    updateElement("mutStrength", inSTR);
-
     function updateElement(elementName, value){
       document.getElementById(elementName).innerHTML = value;
     }
     
+
     function updateStatusUI(running) {
       const statusElem = document.getElementById("runstatus");
+
       if (running) {
+        (async () =>{ await toggle("restartButton", true)})();
         statusElem.textContent = "Running";
         statusElem.classList.remove("stopped");
         statusElem.classList.add("running");
@@ -493,3 +501,65 @@ function destroyWorkerPool() {
         statusElem.classList.add("stopped");
       }
     }
+
+
+  function toggleSettings() {
+    const modal = document.getElementById("settingsModal");
+    modal.classList.toggle("hidden");
+  }
+
+  function applySettings() {
+    const settings = {
+      inTIME: parseFloat(document.getElementById('inTIME').value),
+      inGEN: parseInt(document.getElementById('inGEN').value),
+      inMUT: parseInt(document.getElementById('inMUT').value),
+      inSTR: parseFloat(document.getElementById('inSTR').value),
+      inMUTC: parseFloat(document.getElementById('inMUTC').value),
+      inWRK: parseInt(document.getElementById('inWRK').value),
+      inPTZ: parseFloat(document.getElementById('inPTZ').value),
+      usePointFormula: document.getElementById('usePointFormula').checked,
+      pointFormula: document.getElementById('pointFormula').value,
+      manualPoints: JSON.parse(document.getElementById('manualPoints').value),
+      inCSZ: parseInt(document.getElementById('inCSZ').value),
+      inBMS: parseFloat(document.getElementById('inBMS').value),
+      inBSP: JSON.parse(document.getElementById('inBSP').value)
+    };
+
+    // Update
+    inTIME = settings.inTIME;
+    inGEN = settings.inGEN;
+    inMUT = settings.inMUT;
+    inSTR = settings.inSTR;
+    inMUTC = settings.inMUTC;
+    inWRK = settings.inWRK;
+    inPTZ = settings.inPTZ;
+    usePointFormula = settings.usePointFormula;
+    pointFormula = settings.pointFormula;
+    manualPoints = settings.manualPoints;
+    inCSZ = settings.inCSZ;
+    inBMS = settings.inBMS;
+    inBSP = settings.inBSP;
+
+    pointSize = inPTZ;
+    target_points = generat_target_points(usePointFormula, pointFormula, manualPoints);
+    tickLimit = Math.round((inTIME)/tickLength);
+
+    forceGraphs = function(){
+        let g = [];
+        for(let i = 0; i < 1; i++){
+            g.push([generateRandomGraph(tickLimit, startingMultiplier),generateRandomGraph(tickLimit, startingMultiplier)]);
+        }
+        return g;
+    }();
+
+
+    if(!firstRun){
+        document.getElementById("continueButton").disabled = true;
+    }
+    
+    destroyWorkerPool();
+    updateCanvas();
+
+    console.log("Applied Settings:", settings);
+    toggleSettings(); // Close modal
+  }
