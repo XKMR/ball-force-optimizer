@@ -491,7 +491,6 @@ function destroyWorkerPool() {
       const statusElem = document.getElementById("runstatus");
 
       if (running) {
-        (async () =>{ await toggle("restartButton", true)})();
         statusElem.textContent = "Running";
         statusElem.classList.remove("stopped");
         statusElem.classList.add("running");
