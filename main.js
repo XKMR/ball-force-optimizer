@@ -1,8 +1,8 @@
 //INPUTS
 var inTIME = 1; //seconds
-var inGEN = 1000; //number of generations
+var inGEN = 700; //number of generations
 var inMUT = 100; //mutations per generation
-var inSTR = 4; //strength of mutations
+var inSTR = 16; //strength of mutations
 var inMUTC = 0.1; //mutation ratio of graphs
 var inWRK = 10; //number of workers
 var inPTZ = 0.1; //size of points
@@ -12,6 +12,8 @@ var manualPoints = [[0,0], [2,4], [4,0], [5,5]];//points to use if not use formu
 var inCSZ = 400; //canvas size
 var inBMS = 1; //ball mass
 var inBSP = [0.0, 0.0]; //ball starting position
+//var barriers = [[[0,0.5],[3.5, 0.5]],[[0, -0.5],[3.5,-0.5]]]; //barrier walls in format: [[startX, startY],[endX, endY]],[...]
+var barriers = [];
 
 //technical
 var inTL = 1/64; //tick length
@@ -71,10 +73,19 @@ function drawPoint([x, y], color, size){
 }
 
 function drawTargetPoints(){
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 0.1;
+    for(barrier of barriers){
+        ctx.moveTo(barrier[0][0], barrier[0][1]);
+        ctx.lineTo(barrier[1][0], barrier[1][1]);
+        ctx.stroke();
+    }
+    ctx.closePath();
     for(let i = 0; i<target_points.length; i++){
         let [x, y] = target_points[i];
         drawPoint([x, y], "white", pointSize);
-        
     }
 }
 
@@ -148,11 +159,78 @@ function generateRandomGraph(length, strength){
 const workerCode = /*js*/`
 self.onmessage = function(e) {
     
-    var { graphs, tickLimit, tickLength, target_points, starting_position } = e.data;
+    var { graphs, tickLimit, tickLength, target_points, starting_position, barriers } = e.data;
+
+    var barrierSides = [];
 
     function distance([x1, y1], [x2, y2]) {
         let dx = x2 - x1, dy = y2 - y1;
         return dx*dx + dy*dy;
+    }
+    function intersects(l1, l2){
+        let a = l1[0][0]
+        let b = l1[0][1]
+        let c = l1[1][0]
+        let d = l1[1][1]
+        let p = l2[0][0]
+        let q = l2[0][1]
+        let r = l2[1][0]
+        let s = l2[1][1]
+        let det, gamma, lambda
+        det = (c-a)*(s-q) - (r-p)*(d-b)
+        if(det == 0){
+            return false;
+        }else{
+            lambda = ((s-q)*(r-a)+(p-r)*(s-b))/det
+            gamma = ((b-d)*(r-a)+(c-a)*(s-b))/det
+            return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+        }
+    }
+
+    function checkBarrierColllision(barriers, position, velocity){
+        if(barriers == "") return [0, 0];
+        let nextPosition = [position[0] + (velocity[0]*tickLength*2), position[1] + (velocity[1]*tickLength*2)]
+
+        let barrierIndex = 0;
+        for(let barrier of barriers){
+            
+            if(intersects([nextPosition, position], barrier)){
+                return [1, barrierIndex];
+            }
+            barrierIndex++;
+        }
+        return [0, 0]
+    }
+    function getNormalVector(p1i, p2i, p3i) {
+        let p1 = {x:p1i[0], y:p1i[1]}
+        let p2 = {x:p2i[0], y:p2i[1]}
+        let p3 = {x:p3i[0], y:p3i[1]}
+
+        // Calculate vectors
+        let vectorLine = { x: p2.x - p1.x, y: p2.y - p1.y };
+        let vectorPoint = { x: p3.x - p1.x, y: p3.y - p1.y };
+
+        // Normalize line vector
+        let magnitude = Math.sqrt(vectorLine.x * vectorLine.x + vectorLine.y * vectorLine.y);
+        let normalizedVectorLine = { x: vectorLine.x / magnitude, y: vectorLine.y / magnitude };
+
+        // Project vectorPoint onto line vector
+        let dotProduct = vectorPoint.x * normalizedVectorLine.x + vectorPoint.y * normalizedVectorLine.y;
+        let projection = { x: dotProduct * normalizedVectorLine.x, y: dotProduct * normalizedVectorLine.y };
+
+        // Calculate normal vector
+        let normalVector = { x: vectorPoint.x - projection.x, y: vectorPoint.y - projection.y };
+
+        return [normalVector.x, normalVector.y];
+    }
+
+    function reflectVector(v1, v2) {
+        let incidentVector = {x: v1[0], y: v1[1]}
+        let normalVector = {x: v2[0], y: v2[1]}
+        let dotProduct = {x: incidentVector.x * normalVector.x, y:incidentVector.y * normalVector.y};
+        let reflected = {x: incidentVector.x - (2 * dotProduct.x * normalVector.x), y: incidentVector.y - (2 * dotProduct.y * normalVector.y)};
+
+        return [reflected.x, reflected.y];
     }
 
     function simulateGraph(graph) {
@@ -161,7 +239,8 @@ self.onmessage = function(e) {
             position: [...starting_position],
             velocity: [0.0, 0.0],
             acceleration: [0.0, 0.0],
-            mass: 1
+            mass: 1,
+            barriers: [...barriers]
         };
         let history = [];
 
@@ -170,8 +249,14 @@ self.onmessage = function(e) {
                 const force = graph[d][tickCount];
                 ball.acceleration[d] = force / ball.mass;
                 ball.velocity[d] += ball.acceleration[d] * tickLength;
-                ball.position[d] += ball.velocity[d] * tickLength;
             }
+            let hasColided = checkBarrierColllision(barriers, ball.position, ball.velocity);
+            if(hasColided[0] == 1){
+                ball.velocity = reflectVector(ball.velocity, getNormalVector(barriers[hasColided[1]][0], barriers[hasColided[1]][1], ball.velocity))
+            }
+            ball.position[0] += ball.velocity[0] * tickLength;
+            ball.position[1] += ball.velocity[1] * tickLength;
+
             history.push([...ball.position]);
             tickCount++;
         }
@@ -236,22 +321,6 @@ var forceGraphs = function(){
     }
     return g;
 }();
-//console.log(forceGraphs);
-for(let i = 0; i < forceGraphs.length; i++){
-
-    tickCount = 0;
-    cPositionHistory = [];
-
-    ball.position = [...inBSP];
-    ball.velocity = [0.0, 0.0];
-    ball.acceleration = [0.0, 0.0];
-
-    while(tickCount <= tickLimit){
-        simulation_tick(i);
-    }
-    aPositionHistory.push(cPositionHistory);
-    //console.log("ITERATION ",(i+1).toString()," COMPELITE");
-}
 
 
 (async () => {
@@ -277,6 +346,7 @@ function mutateGraph(graph, strength = 0.2) {
 }
 
 function restart(mode){
+    aPositionHistory = [];
 
     if(mode == 0){
         (async () => {
@@ -309,6 +379,7 @@ async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 1
 
         let results = await simulateGraphSet(candidates);
 
+        aPositionHistory.push(results.positionHistories);
         const bestIndex = indexOfSmallest(results.totalDistances);
         currentBest = candidates[bestIndex];
 
@@ -327,7 +398,7 @@ async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 1
             //console.log('\x1b[32m'+"stuck mode off");
         }
 
-        if(gen%1000 == 0) console.clear();
+        //if(gen%1000 == 0) console.clear();
     }
     document.getElementById("finalScore").innerHTML = currentScore;
     updateStatusUI(false);
@@ -360,7 +431,8 @@ async function simulateGraphSet(graphSet) {
                 tickLimit,
                 tickLength,
                 target_points,
-                starting_position
+                starting_position,
+                barriers
             });
         });
 
@@ -419,38 +491,19 @@ function startRealTimeLoop(){
             document.getElementById("replayButton").classList.remove("playing");
             return;
         }
-        simulation_tick_graph(bestOptimizedGraph, draw = true) // draw = true
+        simulation_tick_graph(aPositionHistory[inGEN-1][inMUT], draw = true) // draw = true
         
     }, tickLength * 1000); // convert to ms
 }
 
 
 // --------------- MAIN FUNCTION -----------------------
-var localTime = 0;
-function simulation_tick(iteration, shouldDraw = true){
-    let d = 0;
-    let force = [0, 0];
-    while(d < 2){
-        force[d] = forceGraphs[iteration][d][tickCount];
-        ball.acceleration[d] = force[d] / ball.mass;
-        ball.velocity[d] += ball.acceleration[d] * tickLength;
-        ball.position[d] += ball.velocity[d] * tickLength;
-        d++;
-    }
-    cPositionHistory.push([...ball.position]);
-    if (shouldDraw) updateCanvas();
-    tickCount++;
-}
-function simulation_tick_graph(graph, draw = false) {
-    let d = 0;
-    let force = [0, 0];
-    while (d < 2) {
-        force[d] = graph[d][tickCount];
-        ball.acceleration[d] = force[d] / ball.mass;
-        ball.velocity[d] += ball.acceleration[d] * tickLength;
-        ball.position[d] += ball.velocity[d] * tickLength;
-        d++;
-    }
+
+
+function simulation_tick_graph(positions, draw = false) {
+
+    ball.position = [...positions[tickCount]];
+
 
     cPositionHistory.push([...ball.position]);
     if (draw) updateCanvas();
@@ -555,6 +608,7 @@ function destroyWorkerPool() {
     if(!firstRun){
         document.getElementById("continueButton").disabled = true;
     }
+    document.getElementById("replayButton").disabled = true;
     
     destroyWorkerPool();
     updateCanvas();
