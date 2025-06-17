@@ -14,6 +14,7 @@ var inBMS = 1; //ball mass
 var inBSP = [0.0, 0.0]; //ball starting position
 //var barriers = [[[0,0.5],[3.5, 0.5]],[[0, -0.5],[3.5,-0.5]]]; //barrier walls in format: [[startX, startY],[endX, endY]],[...]
 var barriers = [];
+var showEvolution = false;
 
 //technical
 var inTL = 1/64; //tick length
@@ -346,6 +347,7 @@ function mutateGraph(graph, strength = 0.2) {
 }
 
 function restart(mode){
+    updateCanvas()
     aPositionHistory = [];
 
     if(mode == 0){
@@ -385,6 +387,12 @@ async function optimizeGraph(initialGraph, generations = 50, mutationsPerGen = 1
 
         console.log((stuck ? '\x1b[31m' : "") + `Generation ${gen + 1}: Best Score = ${results.totalDistances[bestIndex]}\x1b[0m`);
         currentScore = results.totalDistances[bestIndex];
+
+        if(showEvolution){
+            for(position of aPositionHistory[gen][aPositionHistory[gen].length-1]){
+                drawPoint(position, "yellow", inPTZ);
+            }
+        }
 
         if((lastScore - currentScore)<1e-6) stuckCount++;
         if(currentScore != lastScore) stuckCount = 0;
@@ -574,7 +582,8 @@ function destroyWorkerPool() {
       manualPoints: JSON.parse(document.getElementById('manualPoints').value),
       inCSZ: parseInt(document.getElementById('inCSZ').value),
       inBMS: parseFloat(document.getElementById('inBMS').value),
-      inBSP: JSON.parse(document.getElementById('inBSP').value)
+      inBSP: JSON.parse(document.getElementById('inBSP').value),
+      showEvolution: document.getElementById("showEvolution").checked
     };
 
     // Update
@@ -591,6 +600,7 @@ function destroyWorkerPool() {
     inCSZ = settings.inCSZ;
     inBMS = settings.inBMS;
     inBSP = settings.inBSP;
+    showEvolution = settings.showEvolution;
 
     pointSize = inPTZ;
     target_points = generat_target_points(usePointFormula, pointFormula, manualPoints);
